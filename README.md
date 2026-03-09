@@ -9,6 +9,7 @@
 - ✅ **YOLO 检测** - 自动识别图片中的物体
 - ✅ **文本搜索** - 用关键词搜索包含特定物体的图片
 - ✅ **向量搜索** - 上传图片找视觉相似的图片
+- ✅ **智能问答** - 上传图片 + 提问，返回回答 + 可视化标注
 - ✅ **持久化存储** - 数据保存在本地数据库中
 
 ---
@@ -269,8 +270,12 @@ Project02/
 │   ├── multimodal_clip_extract.py  # CLIP向量提取
 │   └── multimodal_vector_search.py # 向量相似搜索
 │
+├── 智能问答/
+│   └── multimodal_rag_qa.py        # 通义千问 LLM 问答
+│
 ├── docs/plans/                      # 设计文档
 ├── multimodal_db/                   # ChromaDB 数据存储
+├── output/                          # 标注结果输出
 ├── yolo11n.pt                       # YOLO 模型文件
 └── *.jpg                            # 测试图片
 ```
@@ -282,7 +287,7 @@ Project02/
 ### 环境准备
 
 ```bash
-pip install chromadb ultralytics sentence-transformers opencv-python
+pip install chromadb ultralytics sentence-transformers opencv-python dashscope
 ```
 
 ### 运行步骤
@@ -327,6 +332,31 @@ python multimodal_vector_search.py bus.jpg
 
 **输入**: 查询图片  
 **输出**: 相似图片列表及距离值
+
+---
+
+### 5. 智能问答（RAG）
+
+```bash
+# 设置 API Key（可选，已内置默认值）
+# 方式一：环境变量
+set DASHSCOPE_API_KEY=your-api-key
+
+# 方式二：直接运行（脚本中已内置示例 key）
+python multimodal_rag_qa.py bus.jpg "这张图片里有什么车？"
+```
+
+**输入**: 图片 + 问题  
+**输出**: 
+- LLM 回答（自然语言）
+- 带标注的图片（框出检测到的物体）
+
+**工作流程**:
+```
+上传图片 → YOLO检测 → 可视化标注 → 通义千问分析 → 返回回答 + 标注图片
+```
+
+**支持的模型**: qwen-max（默认）、qwen-plus 等
 
 ---
 
@@ -405,7 +435,8 @@ A: 在对应脚本的图片列表中添加路径即可。
 2. **第二阶段**: 运行 roboflow_detection.py，了解目标检测
 3. **第三阶段**: 运行 multimodal_yolo_store.py，理解检测+存储流程
 4. **第四阶段**: 运行 multimodal_vector_search.py，掌握向量搜索
-5. **第五阶段**: 尝试扩展功能，如添加新图片、修改搜索逻辑
+5. **第五阶段**: 运行 multimodal_rag_qa.py，体验 LLM 智能问答
+6. **第六阶段**: 尝试扩展，如多轮对话、语音输入等
 
 ---
 

@@ -46,3 +46,6 @@ chroma.sqlite3
 *.log
 temp/
 tmp/
+
+# 输出目录
+output/
