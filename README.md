@@ -266,6 +266,7 @@ Project02/
 │
 ├── Web 应用/
 │   ├── app.py                     # Streamlit Web 界面
+│   ├── app_rag.py                 # RAG 知识库版 Web 界面
 │   └── requirements.txt           # 依赖列表
 │
 ├── 多模态检索/
@@ -277,8 +278,14 @@ Project02/
 ├── 智能问答/
 │   └── multimodal_rag_qa.py        # 通义千问 LLM 问答（核心逻辑）
 │
+├── RAG 知识库/
+│   ├── knowledge_base.py           # 知识库管理模块
+│   ├── build_knowledge_base.py    # 构建知识库脚本
+│   └── app_rag.py                 # RAG 知识库 Web 应用
+│
 ├── docs/plans/                      # 设计文档
 ├── multimodal_db/                   # ChromaDB 数据存储
+├── knowledge_db/                    # RAG 知识库存储
 ├── output/                          # 标注结果输出
 ├── yolo11n.pt                       # YOLO 模型文件
 └── *.jpg                            # 测试图片
@@ -404,6 +411,79 @@ streamlit run app.py
 
 ---
 
+### 7. RAG 知识库系统（推荐进阶）
+
+这是本项目的核心亮点，完整实现了 RAG（检索增强生成）技术：
+
+```bash
+# 7.1 构建知识库
+python build_knowledge_base.py ./images --clear
+
+# 7.2 启动 RAG Web 应用
+streamlit run app_rag.py
+```
+
+#### RAG 架构详解
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    用户上传图片 + 提问                            │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │
+          ┌────────────────────┼────────────────────┐
+          ▼                    ▼                    ▼
+   ┌─────────────┐     ┌─────────────┐      ┌─────────────┐
+   │  YOLO 实时  │     │  ChromaDB   │      │  Prompt     │
+   │    检测     │     │  知识库检索  │      │   融合      │
+   │ (当前图片)  │     │ (历史图片)   │      │             │
+   └──────┬──────┘     └──────┬──────┘      └──────┬──────┘
+          │                   │                     │
+          └───────────────────┼─────────────────────┘
+                              ▼
+                    ┌─────────────────┐
+                    │   通义千问      │
+                    │   生成回答      │
+                    └─────────────────┘
+```
+
+#### 核心技术点
+
+| 技术 | 说明 | 本项目实现 |
+|------|------|-----------|
+| **Embedding** | 将图片/文本转为向量 | CLIP 模型 |
+| **向量检索** | 相似向量匹配 | ChromaDB |
+| **文本检索** | 语义搜索 | ChromaDB |
+| **混合检索** | 向量+文本融合 | search_hybrid() |
+| **RAG** | 检索+生成 | app_rag.py |
+
+#### 知识库检索流程
+
+```python
+# 1. 向量相似搜索 - 找视觉相似的图片
+vector_results = search_by_vector(query_image, top_k=3)
+
+# 2. 文本语义搜索 - 找语义相关的图片  
+text_results = search_by_text(query_text, top_k=3)
+
+# 3. 融合结果 - 合并去重
+combined_results = merge(vector_results, text_results)
+
+# 4. 构建上下文
+context = build_context(realtime_detections, combined_results)
+
+# 5. 调用 LLM 生成回答
+answer = llm.generate(context, question)
+```
+
+#### 使用说明
+
+1. **构建知识库**：将历史图片批量导入知识库
+2. **启用开关**：在 Web 界面侧边栏开启"启用知识库检索"
+3. **双重检索**：系统同时进行实时检测和知识库检索
+4. **结果展示**：显示知识库中匹配的历史图片
+
+---
+
 ## 进阶扩展
 
 ### 方向 1: RAG 问答系统
@@ -475,13 +555,24 @@ A: 在对应脚本的图片列表中添加路径即可。
 
 ## 学习路径建议
 
-1. **第一阶段（推荐）**: 运行 `streamlit run app.py`，体验 Web 界面
-2. **第二阶段**: 运行 chromadb_quickstart.py，理解向量数据库基本操作
-3. **第三阶段**: 运行 roboflow_detection.py，了解目标检测
-4. **第四阶段**: 运行 multimodal_yolo_store.py，理解检测+存储流程
-5. **第五阶段**: 运行 multimodal_vector_search.py，掌握向量搜索
+1. **第一阶段（推荐）**: 运行 `streamlit run app.py`，体验 Web 界面基础功能
+2. **第二阶段**: 运行 `streamlit run app_rag.py`，体验 RAG 知识库系统
+3. **第三阶段**: 运行 chromadb_quickstart.py，理解向量数据库基本操作
+4. **第四阶段**: 运行 build_knowledge_base.py，理解知识库构建流程
+5. **第五阶段**: 阅读 knowledge_base.py 源码，深入理解 Embedding + ChromaDB 检索
 6. **第六阶段**: 运行 multimodal_rag_qa.py，深入理解 LLM 问答原理
-7. **第七阶段**: 尝试扩展，如多轮对话、语音输入等
+7. **第七阶段**: 尝试扩展，如多轮对话、语音输入、知识图谱等
+
+### RAG 知识库学习重点
+
+| 知识点 | 学习文件 |
+|--------|---------|
+| CLIP Embedding | `knowledge_base.py` - get_image_embedding() |
+| 向量检索 | `knowledge_base.py` - search_by_vector() |
+| 文本检索 | `knowledge_base.py` - search_by_text() |
+| 混合检索 | `knowledge_base.py` - search_hybrid() |
+| RAG 流程 | `app_rag.py` - process_image_rag() |
+| 知识库构建 | `build_knowledge_base.py` |
 
 ---
 
