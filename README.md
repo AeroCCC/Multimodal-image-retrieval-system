@@ -264,6 +264,10 @@ Project02/
 │   ├── roboflow_detection.py       # Roboflow API 检测
 │   └── roboflow_detection_visualized.py  # 检测可视化
 │
+├── Web 应用/
+│   ├── app.py                     # Streamlit Web 界面
+│   └── requirements.txt           # 依赖列表
+│
 ├── 多模态检索/
 │   ├── multimodal_yolo_store.py    # YOLO检测 + 存储
 │   ├── multimodal_text_search.py   # 文本搜索
@@ -271,7 +275,7 @@ Project02/
 │   └── multimodal_vector_search.py # 向量相似搜索
 │
 ├── 智能问答/
-│   └── multimodal_rag_qa.py        # 通义千问 LLM 问答
+│   └── multimodal_rag_qa.py        # 通义千问 LLM 问答（核心逻辑）
 │
 ├── docs/plans/                      # 设计文档
 ├── multimodal_db/                   # ChromaDB 数据存储
@@ -287,7 +291,13 @@ Project02/
 ### 环境准备
 
 ```bash
-pip install chromadb ultralytics sentence-transformers opencv-python dashscope
+pip install -r requirements.txt
+```
+
+或手动安装：
+
+```bash
+pip install streamlit chromadb ultralytics sentence-transformers opencv-python dashscope
 ```
 
 ### 运行步骤
@@ -357,6 +367,40 @@ python multimodal_rag_qa.py bus.jpg "这张图片里有什么车？"
 ```
 
 **支持的模型**: qwen-max（默认）、qwen-plus 等
+
+---
+
+### 6. Web 界面（推荐）
+
+```bash
+# 启动 Web 应用
+streamlit run app.py
+
+# 访问
+# http://localhost:8501
+```
+
+**功能**:
+- 📤 图片上传（支持拖拽）
+- 💬 问题输入（支持快速问题按钮）
+- 📊 实时显示检测结果和标注图片
+- 💡 通义千问智能回答
+- 📜 历史记录保存
+
+**界面预览**:
+```
+┌─────────────────────────────────────────────────┐
+│  🤖 多模态智能问答系统                            │
+├────────────────────┬────────────────────────────┤
+│  📤 上传图片        │  📊 分析结果               │
+│  [选择文件]        │  [带标注图片]               │
+│                    │                            │
+│  💬 提问            │  💡 智能回答               │
+│  这张图片里有什么车？│  检测到1辆公交车...        │
+│                    │                            │
+│  [🚀 开始分析]      │  📜 历史记录               │
+└────────────────────┴────────────────────────────┘
+```
 
 ---
 
@@ -431,12 +475,13 @@ A: 在对应脚本的图片列表中添加路径即可。
 
 ## 学习路径建议
 
-1. **第一阶段**: 运行 chromadb_quickstart.py，理解向量数据库基本操作
-2. **第二阶段**: 运行 roboflow_detection.py，了解目标检测
-3. **第三阶段**: 运行 multimodal_yolo_store.py，理解检测+存储流程
-4. **第四阶段**: 运行 multimodal_vector_search.py，掌握向量搜索
-5. **第五阶段**: 运行 multimodal_rag_qa.py，体验 LLM 智能问答
-6. **第六阶段**: 尝试扩展，如多轮对话、语音输入等
+1. **第一阶段（推荐）**: 运行 `streamlit run app.py`，体验 Web 界面
+2. **第二阶段**: 运行 chromadb_quickstart.py，理解向量数据库基本操作
+3. **第三阶段**: 运行 roboflow_detection.py，了解目标检测
+4. **第四阶段**: 运行 multimodal_yolo_store.py，理解检测+存储流程
+5. **第五阶段**: 运行 multimodal_vector_search.py，掌握向量搜索
+6. **第六阶段**: 运行 multimodal_rag_qa.py，深入理解 LLM 问答原理
+7. **第七阶段**: 尝试扩展，如多轮对话、语音输入等
 
 ---
 

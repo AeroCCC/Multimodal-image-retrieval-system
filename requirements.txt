@@ -1,0 +1,11 @@
+# Web 应用
+streamlit>=1.28.0
+
+# 核心功能
+ultralytics>=8.0.0
+chromadb>=0.4.0
+dashscope>=1.10.0
+opencv-python>=4.8.0
+
+# 向量检索（可选）
+sentence-transformers>=2.2.0
