@@ -58,7 +58,54 @@ def save_uploaded_file(uploaded_file):
         return tmp_file.name
 
 
-def process_image_rag(uploaded_file, question, api_key, use_knowledge_base=True):
+def is_follow_up_question(question):
+    """判断是否为追问"""
+    follow_up_keywords = [
+        "之前",
+        "相比",
+        "比较",
+        "哪个更多",
+        "哪个更少",
+        "室内",
+        "室外",
+        "哪里",
+        "什么场景",
+        "这是哪",
+        "再问",
+        "追问",
+        "还有",
+        "另外",
+        "呢",
+    ]
+    question_lower = question.lower()
+    return any(keyword in question_lower for keyword in follow_up_keywords)
+
+
+def get_history_context():
+    """获取历史问答记录中的图片信息"""
+    if not st.session_state.history:
+        return ""
+
+    context_parts = ["【历史问答记录中的图片】"]
+    for i, item in enumerate(st.session_state.history[:5], 1):
+        context_parts.append(f"\n历史图片 {i}:")
+        context_parts.append(f"  - 图片: {item.get('image_name', 'N/A')}")
+
+        detections = item.get("detections", [])
+        if detections:
+            class_count = {}
+            for det in detections:
+                cls = det["class"]
+                class_count[cls] = class_count.get(cls, 0) + 1
+            classes_str = ", ".join([f"{k}{v}个" for k, v in class_count.items()])
+            context_parts.append(f"  - 包含: {classes_str}")
+
+    return "\n".join(context_parts)
+
+
+def process_image_rag(
+    uploaded_file, question, api_key, use_knowledge_base=True, is_follow_up=False
+):
     """
     RAG 流程：YOLO检测 + 知识库检索 + LLM生成
 
@@ -67,6 +114,7 @@ def process_image_rag(uploaded_file, question, api_key, use_knowledge_base=True)
         question: 用户问题
         api_key: API Key
         use_knowledge_base: 是否使用知识库
+        is_follow_up: 是否为追问
 
     返回:
         dict: 处理结果
@@ -91,19 +139,30 @@ def process_image_rag(uploaded_file, question, api_key, use_knowledge_base=True)
             temp_image_path, realtime_detections, output_path
         )
 
-        # ========== 2. 知识库检索 ==========
+        # ========== 2. 构建上下文 ==========
+        context_parts = []
+
+        # 2.1 如果是追问，添加历史记录
+        if is_follow_up:
+            history_context = get_history_context()
+            if history_context:
+                context_parts.append(history_context)
+
+        # 2.2 实时检测结果
+        context_parts.append("\n【当前图片检测结果】")
+        context_parts.append(format_detection_summary(realtime_detections))
+
+        # ========== 3. 知识库检索（仅对主问题）==========
         kb_results = {"vector_search": None, "text_search": None, "combined": []}
 
-        if use_knowledge_base:
-            # 2.1 向量相似搜索
+        if use_knowledge_base and not is_follow_up:
+            # 3.1 向量相似搜索
             kb_results["vector_search"] = search_by_vector(temp_image_path, top_k=3)
 
-            # 2.2 文本语义搜索
+            # 3.2 文本语义搜索
             kb_results["text_search"] = search_by_text(question, top_k=3)
 
-            # 2.3 融合结果
-            kb_results["combined"] = []
-
+            # 3.3 融合结果
             if kb_results["vector_search"] and kb_results["vector_search"].get("ids"):
                 for img_id, meta, dist in zip(
                     kb_results["vector_search"]["ids"][0],
@@ -136,23 +195,17 @@ def process_image_rag(uploaded_file, question, api_key, use_knowledge_base=True)
                             }
                         )
 
-        # ========== 3. 构建上下文 ==========
-        # 实时检测结果
-        context_parts = []
-        context_parts.append("【实时检测结果】")
-        context_parts.append(format_detection_summary(realtime_detections))
+            # 添加知识库结果到上下文
+            if kb_results["combined"]:
+                context_parts.append("\n【知识库相关图片】")
+                context_parts.append(f"找到 {len(kb_results['combined'])} 张相关图片:")
 
-        # 知识库结果
-        if use_knowledge_base and kb_results["combined"]:
-            context_parts.append("\n【知识库相关图片】")
-            context_parts.append(f"找到 {len(kb_results['combined'])} 张相关图片:")
-
-            for i, result in enumerate(kb_results["combined"][:3], 1):
-                meta = result["metadata"]
-                context_parts.append(f"\n相关图片 {i}:")
-                context_parts.append(f"  - 路径: {meta.get('image_path', 'N/A')}")
-                context_parts.append(f"  - 包含: {meta.get('classes', 'N/A')}")
-                context_parts.append(f"  - 匹配方式: {result['type']}")
+                for i, result in enumerate(kb_results["combined"][:3], 1):
+                    meta = result["metadata"]
+                    context_parts.append(f"\n相关图片 {i}:")
+                    context_parts.append(f"  - 路径: {meta.get('image_path', 'N/A')}")
+                    context_parts.append(f"  - 包含: {meta.get('classes', 'N/A')}")
+                    context_parts.append(f"  - 匹配方式: {result['type']}")
 
         full_context = "\n".join(context_parts)
 
@@ -317,10 +370,17 @@ if analyze_btn and uploaded_file and question:
     if not st.session_state.current_api_key:
         st.error("请先配置 API Key")
     else:
+        # 检测是否为追问
+        follow_up = is_follow_up_question(question)
+
         with st.spinner("🔍 RAG 检索中..."):
             try:
                 result = process_image_rag(
-                    uploaded_file, question, st.session_state.current_api_key, use_kb
+                    uploaded_file,
+                    question,
+                    st.session_state.current_api_key,
+                    use_kb,
+                    is_follow_up=follow_up,
                 )
 
                 with col2:
