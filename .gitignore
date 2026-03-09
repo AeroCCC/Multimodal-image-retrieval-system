@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# 模型文件
+*.pt
+*.pth
+*.ckpt
+
+# ChromaDB 数据库
+multimodal_db/
+my_chroma_db/
+chroma.sqlite3
+
+# 缓存
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# 测试图片（可选，保留测试图片可正常运行）
+# *.jpg
+# *.png
+
+# 环境变量
+.env
+.env.local
+
+# MacOS
+.DS_Store
+
+# 其他
+*.log
+temp/
+tmp/
