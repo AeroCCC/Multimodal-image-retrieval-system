@@ -20,6 +20,7 @@ build/
 multimodal_db/
 my_chroma_db/
 chroma.sqlite3
+knowledge_db/
 
 # 缓存
 .ruff_cache/
