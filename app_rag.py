@@ -76,6 +76,16 @@ def is_follow_up_question(question):
         "还有",
         "另外",
         "呢",
+        "白天",
+        "夜晚",
+        "晚上",
+        "天黑",
+        "时间",
+        "几点",
+        "街景",
+        "机场",
+        "场景",
+        "拍的",
     ]
     question_lower = question.lower()
     return any(keyword in question_lower for keyword in follow_up_keywords)
@@ -202,9 +212,11 @@ def process_image_rag(
 
                 for i, result in enumerate(kb_results["combined"][:3], 1):
                     meta = result["metadata"]
+                    scene = meta.get("scene", "未知")
                     context_parts.append(f"\n相关图片 {i}:")
                     context_parts.append(f"  - 路径: {meta.get('image_path', 'N/A')}")
                     context_parts.append(f"  - 包含: {meta.get('classes', 'N/A')}")
+                    context_parts.append(f"  - 场景标签: {scene}")
                     context_parts.append(f"  - 匹配方式: {result['type']}")
 
         full_context = "\n".join(context_parts)
@@ -219,7 +231,10 @@ def process_image_rag(
 【用户问题】
 {question}
 
-请根据上述图片的文字描述信息来回答问题。如果描述中没有相关信息，请如实说明你无法从文字描述中获取该信息。"""
+请根据上述图片的文字描述信息来回答问题。
+- 如果用户问的是"白天"还是"夜晚"，请参考【场景标签】来判断。
+- 场景标签包含：白天街景、夜晚街景、白天机场、夜晚机场、飞机等。
+- 如果描述中没有相关信息，请如实说明你无法从文字描述中获取该信息。"""
 
         answer = ask_qwen_with_context(prompt)
 
@@ -306,12 +321,12 @@ with st.sidebar:
 
     # API Key 配置
     api_key_input = st.text_input(
-        "通义千问 API Key",
+        "API Key",
         type="password",
         value=st.session_state.current_api_key
         if st.session_state.current_api_key != "your-api-key-here"
         else "",
-        help="可在阿里云 dashscope 控制台获取",
+        help="请输入你的API key",
     )
 
     if api_key_input:
