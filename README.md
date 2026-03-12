@@ -454,6 +454,7 @@ streamlit run app_rag.py
 | **向量检索** | 相似向量匹配 | ChromaDB |
 | **文本检索** | 语义搜索 | ChromaDB |
 | **混合检索** | 向量+文本融合 | search_hybrid() |
+| **场景标签** | 白天/夜晚 + 室内/室外 | CLIP 零样本提示词 |
 | **RAG** | 检索+生成 | app_rag.py |
 
 #### 知识库检索流程

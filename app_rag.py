@@ -34,6 +34,7 @@ from knowledge_base import (
     get_knowledge_base_stats,
     get_image_embedding,
 )
+from scene_classifier import classify_scene
 
 # 配置
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -149,6 +150,9 @@ def process_image_rag(
             temp_image_path, realtime_detections, output_path
         )
 
+        # 额外场景标签（零样本 CLIP）
+        scene_info = classify_scene(temp_image_path)
+
         # ========== 2. 构建上下文 ==========
         context_parts = []
 
@@ -161,6 +165,13 @@ def process_image_rag(
         # 2.2 实时检测结果
         context_parts.append("\n【当前图片检测结果】")
         context_parts.append(format_detection_summary(realtime_detections))
+        context_parts.append(
+            f"\n【当前图片场景标签】{scene_info['scene']} "
+            f"(day={scene_info['probs']['day']}, "
+            f"night={scene_info['probs']['night']}, "
+            f"indoor={scene_info['probs']['indoor']}, "
+            f"outdoor={scene_info['probs']['outdoor']})"
+        )
 
         # ========== 3. 知识库检索（仅对主问题）==========
         kb_results = {"vector_search": None, "text_search": None, "combined": []}

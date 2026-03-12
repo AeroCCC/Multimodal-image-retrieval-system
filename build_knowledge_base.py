@@ -14,6 +14,7 @@ from knowledge_base import (
     clear_knowledge_base,
     get_collection,
 )
+from scene_classifier import classify_scene
 
 # 配置
 YOLO_MODEL_PATH = "yolo11n.pt"
@@ -95,6 +96,13 @@ def build_from_directory(image_dir, scene_label=None, clear_existing=False):
             metadata = {}
             if scene_label:
                 metadata["scene"] = scene_label
+            else:
+                # 自动场景标签（零样本 CLIP）
+                scene_info = classify_scene(img_path)
+                metadata["scene"] = scene_info["scene"]
+                metadata["scene_day_night"] = scene_info["day_night"]
+                metadata["scene_indoor_outdoor"] = scene_info["indoor_outdoor"]
+                metadata["scene_confidence"] = scene_info["confidence"]
 
             # 添加到知识库
             add_to_knowledge_base(img_path, detections, metadata)
@@ -146,6 +154,14 @@ def build_from_file_list(file_list, metadata_list=None):
             metadata = (
                 metadata_list[i] if metadata_list and i < len(metadata_list) else None
             )
+            if metadata is None:
+                metadata = {}
+            if "scene" not in metadata:
+                scene_info = classify_scene(img_path)
+                metadata["scene"] = scene_info["scene"]
+                metadata["scene_day_night"] = scene_info["day_night"]
+                metadata["scene_indoor_outdoor"] = scene_info["indoor_outdoor"]
+                metadata["scene_confidence"] = scene_info["confidence"]
             add_to_knowledge_base(img_path, detections, metadata)
             success_count += 1
 

@@ -9,3 +9,4 @@ opencv-python>=4.8.0
 
 # 向量检索（可选）
 sentence-transformers>=2.2.0
+pillow>=10.0.0
