@@ -15,10 +15,32 @@ from PIL import Image
 from knowledge_base import get_clip_model
 
 
-_DAY_PROMPT = "a photo taken during the day"
-_NIGHT_PROMPT = "a photo taken at night"
-_INDOOR_PROMPT = "an indoor photo"
-_OUTDOOR_PROMPT = "an outdoor photo"
+_PROMPTS = {
+    "day": [
+        "a photo taken during the day",
+        "a bright daytime scene",
+        "a sunlit outdoor photo",
+        "daylight scene",
+    ],
+    "night": [
+        "a photo taken at night",
+        "a dark nighttime scene",
+        "a low light photo at night",
+        "nighttime street scene",
+    ],
+    "indoor": [
+        "an indoor photo",
+        "an interior room scene",
+        "inside a building",
+        "an indoor environment",
+    ],
+    "outdoor": [
+        "an outdoor photo",
+        "outside in open air",
+        "an outdoor environment",
+        "a street scene outdoors",
+    ],
+}
 
 
 def _cosine_similarity(a, b) -> float:
@@ -42,13 +64,9 @@ def _softmax_pair(a: float, b: float) -> tuple[float, float]:
 @lru_cache(maxsize=1)
 def _get_text_embeddings() -> Dict[str, list]:
     model = get_clip_model()
-    prompts = [_DAY_PROMPT, _NIGHT_PROMPT, _INDOOR_PROMPT, _OUTDOOR_PROMPT]
-    embs = model.encode(prompts)
     return {
-        "day": embs[0].tolist(),
-        "night": embs[1].tolist(),
-        "indoor": embs[2].tolist(),
-        "outdoor": embs[3].tolist(),
+        label: [e.tolist() for e in model.encode(texts)]
+        for label, texts in _PROMPTS.items()
     }
 
 
@@ -71,10 +89,14 @@ def classify_scene(image_path: str) -> Dict[str, object]:
 
     text_embs = _get_text_embeddings()
 
-    day_score = _cosine_similarity(img_emb, text_embs["day"])
-    night_score = _cosine_similarity(img_emb, text_embs["night"])
-    indoor_score = _cosine_similarity(img_emb, text_embs["indoor"])
-    outdoor_score = _cosine_similarity(img_emb, text_embs["outdoor"])
+    def avg_score(label: str) -> float:
+        scores = [_cosine_similarity(img_emb, e) for e in text_embs[label]]
+        return sum(scores) / len(scores)
+
+    day_score = avg_score("day")
+    night_score = avg_score("night")
+    indoor_score = avg_score("indoor")
+    outdoor_score = avg_score("outdoor")
 
     day_prob, night_prob = _softmax_pair(day_score, night_score)
     indoor_prob, outdoor_prob = _softmax_pair(indoor_score, outdoor_score)
@@ -106,4 +128,3 @@ def classify_scene(image_path: str) -> Dict[str, object]:
             "outdoor": round(float(outdoor_prob), 4),
         },
     }
-

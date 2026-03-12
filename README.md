@@ -485,6 +485,17 @@ answer = llm.generate(context, question)
 
 ---
 
+### 场景标签评测（零样本）
+项目内置一个简单的评测脚本 `scene_eval.py`，用于统计场景分类准确率。
+
+```bash
+python scene_eval.py --labels scene_labels.csv --show
+```
+
+`scene_labels.csv` 是一个小样本的示例标注文件，你可以根据自己的数据集修改标签以获得更可靠的评测结果。
+
+---
+
 ## 进阶扩展
 
 ### 方向 1: RAG 问答系统
