@@ -48,6 +48,9 @@ if "current_api_key" not in st.session_state:
 if "kb_initialized" not in st.session_state:
     st.session_state.kb_initialized = False
 
+if "question" not in st.session_state:
+    st.session_state.question = "这张图片里有什么？"
+
 
 def save_uploaded_file(uploaded_file):
     """保存上传的文件到临时目录"""
@@ -374,9 +377,24 @@ with col1:
     )
 
     st.subheader("💬 提问")
-    question = st.text_area(
-        "描述你的问题", value="这张图片里有什么？", height=80, help="描述你想知道的内容"
+    st.text_area(
+        "描述你的问题", key="question", height=80, help="描述你想知道的内容"
     )
+
+    # 快速问题按钮
+    st.markdown("**快速问题：**")
+    quick_questions = [
+        "这张图片里有什么？",
+        "有多少辆车？",
+        "有几个人？",
+        "这是什么地方？",
+    ]
+
+    cols = st.columns(2)
+    for i, q in enumerate(quick_questions):
+        if cols[i % 2].button(q, key=f"quick_{i}"):
+            st.session_state.question = q
+            st.rerun()
 
     # 分析按钮
     analyze_btn = st.button(
@@ -384,22 +402,23 @@ with col1:
     )
 
 # 处理逻辑
-if analyze_btn and uploaded_file and question:
+if analyze_btn and uploaded_file and st.session_state.question:
     if not st.session_state.current_api_key:
         st.error("请先配置 API Key")
     else:
         # 检测是否为追问
-        follow_up = is_follow_up_question(question)
+        follow_up = is_follow_up_question(st.session_state.question)
 
         with st.spinner("🔍 RAG 检索中..."):
             try:
                 result = process_image_rag(
                     uploaded_file,
-                    question,
+                    st.session_state.question,
                     st.session_state.current_api_key,
                     use_kb,
                     is_follow_up=follow_up,
                 )
+                st.toast("✅ RAG 分析完成！", icon="🧠")
 
                 with col2:
                     st.subheader("📊 分析结果")
@@ -441,7 +460,7 @@ if analyze_btn and uploaded_file and question:
 
                     # LLM 回答
                     st.subheader("💡 RAG 智能回答")
-                    st.markdown(f"```\n{result['answer']}\n```")
+                    st.info(result["answer"])
 
                     # 显示上下文（调试用）
                     with st.expander("🔧 查看检索上下文"):
@@ -453,8 +472,14 @@ if analyze_btn and uploaded_file and question:
 elif analyze_btn:
     if not uploaded_file:
         st.warning("请先上传图片")
-    if not question:
+    if not st.session_state.question:
         st.warning("请输入问题")
+
+# 如果没有分析结果，在右侧显示提示
+if not (analyze_btn and uploaded_file and st.session_state.question):
+    with col2:
+        st.info("💡 请在左侧上传图片并提问，RAG 分析结果将显示在这里。")
+        st.image("https://via.placeholder.com/600x400.png?text=Waiting+for+RAG+Analysis", use_container_width=True)
 
 # 历史记录展示
 st.divider()
